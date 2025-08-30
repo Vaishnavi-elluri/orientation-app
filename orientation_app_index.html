@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Prompt This Into Existence – Orientation App</title>
+  <style>
+    :root{
+      --bg: #0b1020; /* deep navy */
+      --card: #121836;
+      --text: #e9ecf1;
+      --muted: #a9b0c5;
+      --accent: #7c9cff;
+      --success: #5be49b;
+      --warn: #ffcc66;
+      --danger: #ff6b6b;
+      --shadow: 0 10px 30px rgba(0,0,0,.35);
+      --radius: 18px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji","Segoe UI Emoji";
+      background: radial-gradient(1200px 800px at 80% -10%, #1a2459 0%, var(--bg) 40%), var(--bg);
+      color:var(--text);
+    }
+    .wrap{max-width:900px;margin:0 auto;padding:16px 16px 40px}
+    header{position:sticky;top:0;z-index:10;background:linear-gradient(to bottom, rgba(11,16,32,.95), rgba(11,16,32,.6));backdrop-filter: blur(8px)}
+    .bar{display:flex;gap:12px;align-items:center;justify-content:space-between;padding:12px 4px}
+    .title{font-size:18px;font-weight:700;letter-spacing:.4px}
+    .pill{font-size:12px;color:var(--bg);background:var(--accent);padding:6px 10px;border-radius:999px}
+    .hint{font-size:12px;color:var(--muted)}
+
+    .grid{display:grid;gap:16px}
+    .card{background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));border:1px solid rgba(255,255,255,.08);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px}
+    .card h2{margin:4px 0 10px;font-size:18px}
+    .sub{color:var(--muted);font-size:12px;margin-top:-2px}
+    .big{font-size:48px;font-variant-numeric: tabular-nums;letter-spacing:1px}
+    .controls{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+    button, input, select{
+      font: inherit;color:var(--text);background:#1b2147;border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:10px 14px;
+    }
+    input[type="number"]{appearance:textfield}
+    button{cursor:pointer;transition:.2s transform, .2s opacity}
+    button:active{transform:scale(.98)}
+    .primary{background:linear-gradient(180deg, #6f8cff, #4c6fff);border:none}
+    .success{background:linear-gradient(180deg, #62e6ab, #2ccf83);border:none;color:#062916}
+    .warn{background:linear-gradient(180deg, #ffd082, #ffb656);border:none;color:#3a2500}
+    .danger{background:linear-gradient(180deg, #ff8b8b, #ff6b6b);border:none}
+
+    .hidden{display:none !important}
+    .footer{margin-top:24px;color:var(--muted);font-size:12px}
+    .mode-chip{font-size:11px;opacity:.9;border:1px dashed rgba(255,255,255,.2);padding:4px 8px;border-radius:999px}
+
+    @media (min-width:700px){
+      .grid{grid-template-columns:repeat(2,1fr)}
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap bar">
+      <div class="title">📱 Prompt This Into Existence</div>
+      <div class="pill" id="modeChip">Detecting orientation…</div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <p class="hint">Rotate your phone. The app auto-switches between <span class="mode-chip">Portrait ↑ = Alarm</span>, <span class="mode-chip">Portrait ↓ = Timer</span>, <span class="mode-chip">Landscape ⤵︎ = Stopwatch</span>, <span class="mode-chip">Landscape ⤴︎ = Weather</span>.</p>
+
+    <section id="alarmCard" class="card">
+      <h2>⏰ Alarm Clock <span class="sub">(Portrait primary)</span></h2>
+      <div class="controls">
+        <input type="time" id="alarmTime" />
+        <button class="primary" id="setAlarmBtn">Set Alarm</button>
+        <button class="danger" id="clearAlarmBtn">Clear</button>
+      </div>
+      <p id="alarmStatus" class="sub">No alarm set.</p>
+    </section>
+
+    <section id="timerCard" class="card hidden">
+      <h2>⏳ Timer <span class="sub">(Portrait secondary)</span></h2>
+      <div class="controls">
+        <input type="number" id="timerMin" placeholder="min" min="0" inputmode="numeric" style="width:90px" />
+        <input type="number" id="timerSec" placeholder="sec" min="0" max="59" inputmode="numeric" style="width:90px" />
+        <button class="success" id="startTimerBtn">Start</button>
+        <button id="pauseTimerBtn">Pause</button>
+        <button class="danger" id="resetTimerBtn">Reset</button>
+      </div>
+      <div class="big" id="timerDisplay">00:00</div>
+    </section>
+
+    <section id="stopwatchCard" class="card hidden">
+      <h2>⏱️ Stopwatch <span class="sub">(Landscape primary)</span></h2>
+      <div class="controls">
+        <button class="success" id="swStartBtn">Start</button>
+        <button id="swLapBtn">Lap</button>
+        <button class="warn" id="swStopBtn">Stop</button>
+        <button class="danger" id="swResetBtn">Reset</button>
+      </div>
+      <div class="big" id="swDisplay">00:00.00</div>
+      <ul id="swLaps" class="sub"></ul>
+    </section>
+
+    <section id="weatherCard" class="card hidden">
+      <h2>☀️ Weather of the Day <span class="sub">(Landscape secondary)</span></h2>
+      <div class="controls">
+        <button class="primary" id="locBtn">Use my location</button>
+        <button id="hydbtn">Use Hyderabad</button>
+      </div>
+      <div id="weatherStatus" class="sub">Grant location to load weather, or tap Hyderabad.</div>
+      <div id="weatherData" class="hidden">
+        <div class="big" id="weatherTemp">--°</div>
+        <div id="weatherDesc" class="sub"></div>
+        <div id="weatherHiLo" class="sub"></div>
+      </div>
+    </section>
+
+    <div class="footer">Built to run 100% in-browser. Works on Android & iOS (uses Screen Orientation API with fallbacks). Vibration & sound on alerts where available. Weather via Open‑Meteo free API (no key needed).</div>
+  </main>
+
+  <script>
+    // ---------- UTIL: haptic + beep ----------
+    function buzz(ms=300){ if (navigator.vibrate) navigator.vibrate(ms); }
+    function beep(duration=500, freq=880){
+      try{
+        const ctx = new (window.AudioContext||window.webkitAudioContext)();
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.connect(g); g.connect(ctx.destination);
+        o.type = 'sine'; o.frequency.value = freq; g.gain.value = 0.05;
+        o.start(); setTimeout(()=>{o.stop(); ctx.close();}, duration);
+      }catch(e){ /* ignore */ }
+    }
+
+    // ---------- ORIENTATION ROUTER ----------
+    const alarmCard = document.getElementById('alarmCard');
+    const timerCard = document.getElementById('timerCard');
+    const stopwatchCard = document.getElementById('stopwatchCard');
+    const weatherCard = document.getElementById('weatherCard');
+    const modeChip = document.getElementById('modeChip');
+
+    function showOnly(el){
+      [alarmCard,timerCard,stopwatchCard,weatherCard].forEach(x=>x.classList.add('hidden'));
+      el.classList.remove('hidden');
+    }
+
+    function orientationBucket(){
+      // Returns one of: 'portrait-primary','portrait-secondary','landscape-primary','landscape-secondary'
+      const so = screen.orientation && screen.orientation.type;
+      if (so){ return so; }
+      // Fallbacks for iOS Safari
+      const o = window.orientation; // 0, 90, -90, 180
+      if (o === 0) return 'portrait-primary';
+      if (o === 180) return 'portrait-secondary';
+      if (o === 90) return 'landscape-primary';
+      if (o === -90) return 'landscape-secondary';
+      // As last resort use matchMedia
+      const portrait = window.matchMedia && window.matchMedia('(orientation: portrait)').matches;
+      return portrait ? 'portrait-primary' : 'landscape-primary';
+    }
+
+    function routeUI(){
+      const b = orientationBucket();
+      modeChip.textContent = `Mode: ${b}`;
+      if (b.includes('portrait')){
+        if (b.includes('secondary')){ showOnly(timerCard); }
+        else { showOnly(alarmCard); }
+      }else{
+        if (b.includes('secondary')){ showOnly(weatherCard); }
+        else { showOnly(stopwatchCard); }
+      }
+    }
+
+    // Listen for orientation changes (cross-browser)
+    window.addEventListener('orientationchange', routeUI);
+    if (screen.orientation && screen.orientation.addEventListener){
+      screen.orientation.addEventListener('change', routeUI);
+    }
+    window.addEventListener('load', routeUI);
+
+    // ---------- ALARM ----------
+    const alarmTime = document.getElementById('alarmTime');
+    const setAlarmBtn = document.getElementById('setAlarmBtn');
+    const clearAlarmBtn = document.getElementById('clearAlarmBtn');
+    const alarmStatus = document.getElementById('alarmStatus');
+    let alarmAt = null; let alarmTicker = null; let alarmRinging=false;
+
+    function fmt2(n){ return n.toString().padStart(2,'0'); }
+
+    setAlarmBtn.addEventListener('click', ()=>{
+      if (!alarmTime.value){ alarmStatus.textContent = 'Pick a time first.'; return; }
+      const [hh,mm] = alarmTime.value.split(':').map(Number);
+      const now = new Date();
+      const target = new Date();
+      target.setHours(hh, mm, 0, 0);
+      if (target <= now) target.setDate(target.getDate()+1); // next day if past
+      alarmAt = target.getTime();
+      alarmStatus.textContent = `Alarm set for ${target.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}`;
+      if (alarmTicker) clearInterval(alarmTicker);
+      alarmTicker = setInterval(()=>{
+        if (!alarmAt) return;
+        const t = Date.now();
+        if (t >= alarmAt && !alarmRinging){
+          alarmRinging = true;
+          buzz(800); beep(900,880); beep(900,660);
+          alert('⏰ Alarm!');
+          alarmStatus.textContent = 'Alarm rang!';
+        }
+      }, 500);
+    });
+
+    clearAlarmBtn.addEventListener('click', ()=>{
+      alarmAt = null; alarmRinging=false;
+      if (alarmTicker) clearInterval(alarmTicker);
+      alarmStatus.textContent = 'No alarm set.';
+    });
+
+    // ---------- TIMER ----------
+    const timerMin = document.getElementById('timerMin');
+    const timerSec = document.getElementById('timerSec');
+    const startTimerBtn = document.getElementById('startTimerBtn');
+    const pauseTimerBtn = document.getElementById('pauseTimerBtn');
+    const resetTimerBtn = document.getElementById('resetTimerBtn');
+    const timerDisplay = document.getElementById('timerDisplay');
+
+    let timerTotalMs = 0, timerRemainingMs = 0, timerInterval=null, timerRunning=false, timerEndAt=0;
+
+    function renderTimer(ms){
+      ms = Math.max(0, Math.floor(ms));
+      const m = Math.floor(ms/60000);
+      const s = Math.floor((ms%60000)/1000);
+      timerDisplay.textContent = `${fmt2(m)}:${fmt2(s)}`;
+    }
+
+    startTimerBtn.addEventListener('click', ()=>{
+      if (!timerRunning){
+        const m = parseInt(timerMin.value||'0',10);
+        const s = parseInt(timerSec.value||'0',10);
+        if (timerTotalMs===0){ // first start
+          timerTotalMs = (m*60 + s) * 1000;
+          timerRemainingMs = timerTotalMs;
+          if (timerTotalMs<=0){ renderTimer(0); return; }
+        }
+        timerRunning = true;
+        timerEndAt = Date.now() + timerRemainingMs;
+        timerInterval = setInterval(()=>{
+          timerRemainingMs = timerEndAt - Date.now();
+          if (timerRemainingMs <= 0){
+            clearInterval(timerInterval); timerRunning=false; timerRemainingMs=0; renderTimer(0);
+            buzz(700); beep(1000,880); alert('⏳ Timer done!');
+          } else { renderTimer(timerRemainingMs); }
+        }, 100);
+      }
+    });
+
+    pauseTimerBtn.addEventListener('click', ()=>{
+      if (timerRunning){
+        clearInterval(timerInterval); timerRunning=false;
+        timerRemainingMs = Math.max(0, timerEndAt - Date.now());
+      }
+    });
+
+    resetTimerBtn.addEventListener('click', ()=>{
+      clearInterval(timerInterval); timerRunning=false;
+      timerTotalMs=0; timerRemainingMs=0; renderTimer(0);
+      timerMin.value=''; timerSec.value='';
+    });
+
+    // ---------- STOPWATCH ----------
+    const swDisplay = document.getElementById('swDisplay');
+    const swStartBtn = document.getElementById('swStartBtn');
+    const swLapBtn = document.getElementById('swLapBtn');
+    const swStopBtn = document.getElementById('swStopBtn');
+    const swResetBtn = document.getElementById('swResetBtn');
+    const swLaps = document.getElementById('swLaps');
+
+    let swRunning=false, swStart=0, swAccum=0, rafId=null;
+
+    function renderSW(ms){
+      const m = Math.floor(ms/60000);
+      const s = Math.floor((ms%60000)/1000);
+      const cs = Math.floor((ms%1000)/10);
+      swDisplay.textContent = `${fmt2(m)}:${fmt2(s)}.${fmt2(cs)}`;
+    }
+    function tick(){
+      if (!swRunning) return; 
+      const now = performance.now();
+      renderSW(swAccum + (now - swStart));
+      rafId = requestAnimationFrame(tick);
+    }
+
+    swStartBtn.addEventListener('click', ()=>{
+      if (!swRunning){
+        swRunning=true; swStart=performance.now();
+        rafId = requestAnimationFrame(tick);
+      }
+    });
+    swStopBtn.addEventListener('click', ()=>{
+      if (swRunning){
+        swRunning=false; cancelAnimationFrame(rafId);
+        swAccum += performance.now() - swStart; renderSW(swAccum);
+      }
+    });
+    swResetBtn.addEventListener('click', ()=>{
+      swRunning=false; cancelAnimationFrame(rafId); swStart=0; swAccum=0; renderSW(0); swLaps.innerHTML='';
+    });
+    swLapBtn.addEventListener('click', ()=>{
+      const li = document.createElement('li');
+      li.textContent = `Lap ${swLaps.children.length+1}: ${swDisplay.textContent}`;
+      swLaps.prepend(li);
+    });
+
+    // ---------- WEATHER (Open-Meteo, no API key) ----------
+    const locBtn = document.getElementById('locBtn');
+    const hydbtn = document.getElementById('hydbtn');
+    const weatherStatus = document.getElementById('weatherStatus');
+    const weatherData = document.getElementById('weatherData');
+    const weatherTemp = document.getElementById('weatherTemp');
+    const weatherDesc = document.getElementById('weatherDesc');
+    const weatherHiLo = document.getElementById('weatherHiLo');
+
+    const WMAP = {
+      0:"Clear sky", 1:"Mainly clear", 2:"Partly cloudy", 3:"Overcast",
+      45:"Fog", 48:"Depositing rime fog", 51:"Light drizzle", 53:"Moderate drizzle", 55:"Dense drizzle",
+      56:"Light freezing drizzle", 57:"Dense freezing drizzle", 61:"Slight rain", 63:"Moderate rain", 65:"Heavy rain",
+      66:"Light freezing rain", 67:"Heavy freezing rain", 71:"Slight snow", 73:"Moderate snow", 75:"Heavy snow",
+      77:"Snow grains", 80:"Slight rain showers", 81:"Moderate rain showers", 82:"Violent rain showers",
+      85:"Slight snow showers", 86:"Heavy snow showers", 95:"Thunderstorm", 96:"Thunderstorm w/ slight hail", 99:"Thunderstorm w/ heavy hail"
+    };
+
+    async function loadWeather(lat, lon){
+      try{
+        weatherStatus.textContent = 'Loading weather…';
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min&forecast_days=1&timezone=auto`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error('Network error');
+        const data = await res.json();
+        const curT = data.current?.temperature_2m;
+        const code = data.current?.weather_code ?? data.daily?.weather_code?.[0];
+        const hi = data.daily?.temperature_2m_max?.[0];
+        const lo = data.daily?.temperature_2m_min?.[0];
+        weatherTemp.textContent = `${Math.round(curT)}°`;
+        weatherDesc.textContent = WMAP[code] || 'Weather';
+        weatherHiLo.textContent = `H: ${Math.round(hi)}°  •  L: ${Math.round(lo)}°`;
+        weatherData.classList.remove('hidden');
+        weatherStatus.textContent = 'Today\'s weather';
+      }catch(e){
+        weatherStatus.textContent = 'Failed to load weather. Try again.';
+      }
+    }
+
+    locBtn.addEventListener('click', ()=>{
+      if (!('geolocation' in navigator)){
+        weatherStatus.textContent = 'Geolocation not available. Use Hyderabad button.'; return;
+      }
+      navigator.geolocation.getCurrentPosition(
+        p=> loadWeather(p.coords.latitude, p.coords.longitude),
+        err=> { weatherStatus.textContent = 'Location denied. Use Hyderabad button.'; }
+      );
+    });
+    hydbtn.addEventListener('click', ()=> loadWeather(17.3850, 78.4867));
+
+    // Initial stopwatch/time render
+    renderSW(0); renderTimer(0);
+  </script>
+</body>
+</html>
